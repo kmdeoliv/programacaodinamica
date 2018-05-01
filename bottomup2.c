@@ -129,6 +129,58 @@ int ** preencheMatrizCaixasValidas(Caixa *caixas)
 
 }
 
+void escreveCaixas(char *arquivo, Caixa *caixas, int *soma, int *indices  )
+{
+    if (!arquivo)
+    {
+        fprintf (stderr, "Erro: argumento invalido.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    FILE *out = fopen(arquivo, "a+");
+
+    if(!out)
+    {
+        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de saida.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int tamanho_vetor = num_caixas;
+    Caixa *resultado = malloc(sizeof(Caixa)*tamanho_vetor);
+    int capacidade = altura_maxima;
+    int indice = indices[capacidade];
+    int total_caixas = 0;
+    int valor = soma[altura_maxima];
+
+    while(indice>-1)
+    {
+        if(total_caixas>tamanho_vetor-1)
+        {
+            tamanho_vetor = 2*tamanho_vetor;
+            resultado = realloc(resultado,sizeof(Caixa)*tamanho_vetor);
+        }
+        resultado[total_caixas] = caixas[indice];
+        total_caixas++;
+        capacidade = capacidade-caixas[indice].altura;
+        indice = indices[capacidade];
+    }
+
+    fprintf(out, "%d\n", valor);
+    fprintf(out, "%d\n", total_caixas);
+    for(int i=total_caixas-1; i>=0; i--)
+    {
+        fprintf(out, "%d ", resultado[i].largura);
+        fprintf(out, "%d ", resultado[i].altura);
+        fprintf(out, "%d ", resultado[i].profundidade);
+        fprintf(out, "%d ", resultado[i].valor);
+        fprintf(out, "%d\n", resultado[i].rotacao);
+    }
+
+    free(resultado);
+    fclose(out);
+    return;
+}
+
 int empilhaCaixas(int capacidade, int profundidade, int largura, Caixa *caixas, int *m, int *indices)
 {
     int m_linha;
@@ -169,58 +221,6 @@ int empilhaCaixas(int capacidade, int profundidade, int largura, Caixa *caixas, 
     }
     free(grafo);
     return m[capacidade];
-}
-
-void escreveCaixas(char *arquivo, Caixa *caixas, int *soma, int *indices  )
-{
-    if (!arquivo)
-    {
-        fprintf (stderr, "Erro: argumento invalido.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    FILE *out = fopen(arquivo, "a+");
-
-    if(!out)
-    {
-        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de saida.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    int capacidade = num_caixas;
-    Caixa *resultado = malloc(sizeof(Caixa)*capacidade);
-    int indice = altura_maxima;
-    int v_indice = indices[indice];
-    int total_caixas = 0;
-    int valor = soma[altura_maxima];
-
-    while(v_indice>-1)
-    {
-        if(total_caixas>capacidade-1)
-        {
-            capacidade = 2*capacidade;
-            resultado = realloc(resultado,sizeof(Caixa)*capacidade);
-        }
-        resultado[total_caixas] = caixas[v_indice];
-        total_caixas++;
-        indice = indice-caixas[v_indice].altura;
-        v_indice = indices[indice];
-    }
-
-    fprintf(out, "%d\n", valor);
-    fprintf(out, "%d\n", total_caixas);
-    for(int i=0; i<total_caixas; i++)
-    {
-        fprintf(out, "%d ", resultado[i].largura);
-        fprintf(out, "%d ", resultado[i].altura);
-        fprintf(out, "%d ", resultado[i].profundidade);
-        fprintf(out, "%d ", resultado[i].valor);
-        fprintf(out, "%d\n", resultado[i].rotacao);
-    }
-
-    free(resultado);
-    fclose(out);
-    return;
 }
 
 int main(int argc, char *argv[] )
