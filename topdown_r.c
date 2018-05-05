@@ -4,6 +4,7 @@
 
 int altura_maxima;
 int num_caixas;
+int max_dimensao;
 
 typedef struct caixa
 {
@@ -32,6 +33,7 @@ Caixa* leCaixas(char* arquivo)
         printf("Erro, nao foi possivel abrir o arquivo\n");
     else
     {
+        max_dimensao =0;
         if((fscanf(in, "%d", &valor))!=EOF )
         {
             num_caixas=valor;
@@ -52,11 +54,23 @@ Caixa* leCaixas(char* arquivo)
             if(i>=num_caixas+2)
             {
                 if(k%3==0)
+                {
+                    max_dimensao = max(max_dimensao, valor);
                     caixas[l].largura = valor;
+                }
+
                 if(k%3==1)
+                {
+                    max_dimensao = max(max_dimensao, valor);
                     caixas[l].altura = valor;
+                }
+
                 if(k%3==2)
+                {
+                    max_dimensao = max(max_dimensao, valor);
                     caixas[l].profundidade = valor;
+                }
+
                 caixas[l].rotacao = 1;
                 k++;
                 if(k%3==0)
@@ -129,26 +143,27 @@ int compare (const void *a, const void * b)
 
 int empilhaCaixas(int capacidade, int profundidade, int largura, Caixa *caixas)
 {
+
     int m=0;
     int m_linha;
     int capacidade_linha;
     int profundidade_linha;
     int largura_linha;
-    int j;
+
     for(int i=0; i<num_caixas; i++)
     {
         capacidade_linha = capacidade-caixas[i].altura;
         profundidade_linha = caixas[i].profundidade;
         largura_linha = caixas[i].largura;
-        if(capacidade_linha >= 0 && profundidade_linha<= profundidade && largura_linha <= largura  )
-        {
-            m_linha = empilhaCaixas(capacidade_linha, profundidade_linha, largura_linha, caixas)+ caixas[i].valor;
-            if (m_linha > m)
-                m = m_linha;
-        }
+        if(capacidade_linha >= 0)
+            if(profundidade_linha<= profundidade && largura_linha <= largura  )
+            {
+                m_linha = empilhaCaixas(capacidade_linha, profundidade_linha, largura_linha, caixas)+ caixas[i].valor;
+                if (m_linha > m)
+                    m = m_linha;
+            }
+
     }
-
-
     return m;
 }
 
@@ -169,13 +184,9 @@ int main(int argc, char *argv[] )
         qsort(caixas, num_caixas, sizeof(caixas[0]), compare);
 
 
-        int soma[altura_maxima];
-        for(int i=0; i<altura_maxima; i++)
-            soma[i]= -1;
 
-        printf("%d\n",empilhaCaixas(altura_maxima,INT_MAX,INT_MAX,caixas));
+        printf("Lucro: %d\n",empilhaCaixas(altura_maxima,max_dimensao,max_dimensao,caixas));
 
-        //gravaTabela(soma);
 
         //escreveCaixas(argv[2], caixas, soma);
 
