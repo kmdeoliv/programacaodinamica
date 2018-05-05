@@ -121,11 +121,11 @@ void gravaTabela(int **soma, char* arquivo)
 
     if(!tabela)
     {
-        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de entrada.\n");
+        fprintf(stderr,"Erro: nao foi possivel abrir a tabela.\n");
         exit(EXIT_FAILURE);
     }
 
-    int linha = num_caixas*2+2;
+    int linha = num_caixas+2;
     int coluna = altura_maxima+1;
 
     for(int j=0; j<coluna; j++)
@@ -155,7 +155,7 @@ void imprimeCaixas(Caixa *caixas)
 
 int **preencheMatriz(int valor)
 {
-    int linha = num_caixas*2+2;
+    int linha = num_caixas+2;
     int coluna = altura_maxima+1;
 
     int **m = malloc(linha * sizeof(int *));
@@ -172,7 +172,7 @@ int **preencheMatriz(int valor)
 
 void freeMatriz(int ** matriz)
 {
-    int linha = num_caixas*2+2;
+    int linha = num_caixas+2;
 
     for (int i=0; i<linha; i++)
         free(matriz[i]);
@@ -230,41 +230,45 @@ void escreveCaixas(char* arquivo, Caixa *caixas, int **soma, int **indexes)
     Caixa *resultado = malloc(sizeof(Caixa)*tamanho_vetor);
     int i = indice_i;
     int j = indice_j;
-    int valor = soma[indice_i][indice_j];
-    int indice = indexes[indice_i][indice_j];
     int total_caixas = 0;
+    int valor = soma[i][j];
+    int indice = indexes[i][j];
+    int proximo_valor;
 
-    resultado[total_caixas]=caixas[indice];
+    resultado[total_caixas] = caixas[indice];
     total_caixas++;
+    proximo_valor = valor - caixas[indice].valor;
+    j = j - caixas[indice].altura;
 
-    while(i>1 & soma[i][j-1]<=soma[i-1][j] )
+    while(proximo_valor != 0)
     {
-        i--;
-    }
-
-    (soma[i][j-1]<=soma[i-1][j])?i--:i;
-    j=j-caixas[indice].altura;
-    valor=soma[i][j];
-
-    while(i>=0 && j>=0 && valor!=0)
-    {
-        if(total_caixas>tamanho_vetor-1)
+        if(total_caixas > tamanho_vetor - 1)
         {
             tamanho_vetor = 2*tamanho_vetor;
             resultado = realloc(resultado,sizeof(Caixa)*tamanho_vetor);
         }
-        if(valor==0)
-        {
-            j=j-caixas[indice].altura;
-            valor=soma[i][j];
-        }
-        else
+        if(valor == proximo_valor)
         {
             indice = indexes[i][j];
             resultado[total_caixas] = caixas[indice];
             total_caixas++;
-            j=j-caixas[indice].altura;
-            valor=soma[i][j];
+            proximo_valor = valor - caixas[indice].valor;
+            j = j - caixas[indice].altura;
+            valor = soma[i][j];
+        }
+        else
+        {
+            while(valor != proximo_valor && i>0)
+            {
+                i--;
+                valor = soma[i][j];
+            }
+            indice = indexes[i][j];
+            resultado[total_caixas] = caixas[indice];
+            total_caixas++;
+            proximo_valor = valor - caixas[indice].valor;
+            j = j - caixas[indice].altura;
+            valor = soma[i][j];
         }
     }
 
@@ -277,7 +281,8 @@ void escreveCaixas(char* arquivo, Caixa *caixas, int **soma, int **indexes)
         fprintf(out, "%d ", resultado[i].altura);
         fprintf(out, "%d ", resultado[i].profundidade);
         fprintf(out, "%d ", resultado[i].valor);
-        fprintf(out, "%d\n", resultado[i].rotacao);
+        fprintf(out, "%d ", resultado[i].rotacao);
+        fprintf(out, "%d\n", resultado[i].numero);
     }
 
     free(resultado);
@@ -310,10 +315,13 @@ int empilhaCaixas(int capacidade, int profundidade, int largura, Caixa *caixas, 
                 if (m_linha > m[indice][capacidade])
                 {
                     m[indice][capacidade] = m_linha;
-                    indexes[indice][capacidade] = i;
+                     indexes[indice][capacidade] = i;
                 }
+
             }
+
         }
+
     }
 
     indice_i = indice;
@@ -340,7 +348,7 @@ int main(int argc, char *argv[] )
     int **m=preencheMatriz(0);
     int **indexes=preencheMatriz(-1);
 
-    imprimeCaixas(caixas);
+    //imprimeCaixas(caixas);
     printf("Lucro: %d\n",empilhaCaixas(altura_maxima,max_dimensao,max_dimensao,caixas,m,num_caixas, indexes));
 
     /*nome_tabela = remover(argv[1]);
@@ -351,7 +359,7 @@ int main(int argc, char *argv[] )
     nome_tabela = concatenar(nome_tabela, "v" );
     gravaTabela(m,concatenar(nome_tabela,".csv"));*/
 
-    //escreveCaixas(argv[2], caixas, m, indexes);
+    escreveCaixas(argv[2], caixas, m, indexes);
 
     freeMatriz(m);
     freeMatriz(indexes);
@@ -359,4 +367,3 @@ int main(int argc, char *argv[] )
 
     return 0;
 }
-
