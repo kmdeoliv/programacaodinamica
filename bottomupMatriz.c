@@ -126,6 +126,25 @@ void freeMatriz(int ** matriz)
 
 }
 
+void escreveResultados(char* nome, int valor, double sec)
+{
+    FILE *resultado = fopen("resultado_bottomup.csv", "a+");
+
+    if(!resultado)
+    {
+        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de resultados.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(resultado, "%s,", nome );
+    fprintf(resultado, "%d,", valor );
+    fprintf(resultado, "%.4f", sec );
+    fprintf(resultado, "\n");
+
+    fclose(resultado);
+    return;
+}
+
 int ** preencheMatrizCaixasValidas(Caixa *caixas)
 {
     int **grafo = malloc(num_caixas * sizeof(int *));
@@ -301,7 +320,7 @@ int main(int argc, char *argv[] )
         fprintf(stderr,"Argumentos necessarios: \"programa\" \"entrada\" \"saida\"");
         exit(EXIT_FAILURE);
     }
-
+    clock_t start = clock();
     Caixa *caixas = leCaixas(argv[1]);
 
     geraRotacao(num_caixas, caixas);
@@ -311,9 +330,14 @@ int main(int argc, char *argv[] )
 
     int **soma = preencheMatriz(num_caixas, altura_maxima + 1, 0);
 
-    printf("Lucro: %d\n",empilhaCaixas(altura_maxima,caixas, soma));
+    int valor = empilhaCaixas(altura_maxima, caixas, soma);
 
     escreveCaixas(argv[2], caixas, soma);
+
+    clock_t end = clock();
+    double sec=((double)end-start)/((double)CLOCKS_PER_SEC);
+
+    escreveResultados(argv[1], valor, sec);
 
     freeMatriz(soma);
     free(caixas);
