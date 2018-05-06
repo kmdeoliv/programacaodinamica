@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include<string.h>
 #include <time.h>
 
 int altura_maxima;
@@ -103,16 +102,6 @@ int compare (const void *a, const void * b)
            ( (*(Caixa *)a).profundidade * (*(Caixa *)a).largura );
 }
 
-int *preencheVetor(int tamanho, int valor)
-{
-    int *vetor = malloc( tamanho * sizeof(int));
-
-    for(int i=0; i<tamanho; i++)
-        vetor[i] = valor;
-
-    return vetor;
-}
-
 int** preencheMatriz(int linha, int coluna, int valor)
 {
     int **m = malloc(linha * sizeof(int *));
@@ -126,27 +115,15 @@ int** preencheMatriz(int linha, int coluna, int valor)
     return m;
 }
 
-char* concatenar(const char *s1, const char *s2)
+void freeMatriz(int ** matriz)
 {
-    char *result = malloc(strlen(s1)+strlen(s2)+1);
-    strcpy(result, s1);
-    strcat(result, s2);
-    return result;
-}
+    int linha = num_caixas;
 
-char *remover(char* mystr)
-{
-    char *retstr;
-    char *lastdot;
-    if (mystr == NULL)
-        return NULL;
-    if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
-        return NULL;
-    strcpy (retstr, mystr);
-    lastdot = strrchr (retstr, '.');
-    if (lastdot != NULL)
-        *lastdot = '\0';
-    return retstr;
+    for (int i=0; i<linha; i++)
+        free(matriz[i]);
+
+    free(matriz);
+
 }
 
 int ** preencheMatrizCaixasValidas(Caixa *caixas)
@@ -168,46 +145,84 @@ int ** preencheMatrizCaixasValidas(Caixa *caixas)
 
 }
 
-void gravaTabela(int **soma, char* arquivo)
+void escreveCaixas(char *arquivo, Caixa *caixas, int **soma)
 {
+
     if (!arquivo)
     {
         fprintf (stderr, "Erro: argumento invalido.\n");
         exit(EXIT_FAILURE);
     }
 
-    FILE *tabela = fopen(arquivo, "a+");
+    FILE *out = fopen(arquivo, "a+");
 
-    if(!tabela)
+    if(!out)
     {
-        fprintf(stderr,"Erro: nao foi possivel abrir a tabela.\n");
+        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de saida.\n");
         exit(EXIT_FAILURE);
     }
 
-    int linha = num_caixas;
-    int coluna = altura_maxima+1;
+    int valor = soma[num_caixas-1][altura_maxima];
+    int i = num_caixas - 1;
+    int j = altura_maxima;
+    int total_caixas = 0;
+    int tamanho_vetor = num_caixas;
+    Caixa *resultado = malloc(sizeof(Caixa)*tamanho_vetor);
 
-    for(int j=0; j<coluna; j++)
-        fprintf(tabela, "%d,", j);
-    fprintf(tabela,"\n");
 
-    for(int i=0; i<linha; i++)
+    while(valor>0 && i>0)
+
     {
-        for(int j=0; j<coluna; j++)
-            fprintf(tabela, "%d,", soma[i][j]);
-        fprintf(tabela,"\n");
+        if(total_caixas > tamanho_vetor - 1)
+        {
+            tamanho_vetor = 2 * tamanho_vetor;
+            resultado = realloc(resultado, sizeof(Caixa) * tamanho_vetor);
+        }
+
+        if(soma[i][j-1] > soma[i-1][j])
+        {
+            resultado[total_caixas] = caixas[i];
+            total_caixas++;
+            j = j - caixas[i].altura;
+        }
+        else
+        {
+            while(soma[i][j] == soma[i-1][j] && i>1)
+            {
+                i--;
+            }
+            (soma[i][j] == soma[0][j])?i--:i;
+            resultado[total_caixas] = caixas[i];
+            total_caixas++;
+            j = j - caixas[i].altura;
+        }
+        valor = soma[i][j];
     }
-    fclose(tabela);
+
+    while(valor>0 && j>=0)
+    {
+        resultado[total_caixas] = caixas[i];
+        total_caixas++;
+        j = j - caixas[i].altura;
+        valor = soma[i][j];
+    }
+
+    fprintf(out, "%d\n", soma[num_caixas-1][altura_maxima]);
+    fprintf(out, "%d\n", total_caixas);
+
+    for(int i=total_caixas-1; i>=0; i--)
+    {
+        //fprintf(out, "%d ", resultado[i].largura);
+        //fprintf(out, "%d ", resultado[i].altura);
+        //fprintf(out, "%d ", resultado[i].profundidade);
+        //fprintf(out, "%d ", resultado[i].valor);
+        fprintf(out, "%d ", resultado[i].numero);
+        fprintf(out, "%d\n", resultado[i].rotacao);
+
+    }
+
+    free(resultado);
     return;
-}
-
-void freeGrafo(int **grafo)
-{
-    for (int i=0; i<num_caixas; i++)
-        free(grafo[i]);
-
-    free(grafo);
-
 }
 
 int determinaAnterior(int **m, int i, int capacidade_linha)
@@ -275,107 +290,8 @@ int empilhaCaixas(int capacidade, Caixa *caixas, int **m)
             }
         }
     }
-    freeGrafo(grafo);
+    freeMatriz(grafo);
     return m[num_caixas-1][altura_maxima];
-}
-
-void imprimeCaixas(char *arquivo, Caixa *caixas)
-{
-    if (!arquivo)
-    {
-        fprintf (stderr, "Erro: argumento invalido.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    FILE *out = fopen(arquivo, "a+");
-
-    if(!out)
-    {
-        fprintf(stderr,"Erro: nao foi possivel abrir o arquivo de caixas.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    fprintf(out, "%12s ", "Largura");
-    fprintf(out, "%12s ", "Altura");
-    fprintf(out, "%12s ", "Profund.");
-    fprintf(out, "%12s ", "Valor");
-    fprintf(out, "%12s ", "Numero");
-    fprintf(out, "%12s\n", "Rotacao");
-
-    for(int i=0; i<num_caixas; i++)
-    {
-        fprintf(out, "%12d ", caixas[i].largura);
-        fprintf(out, "%12d ", caixas[i].altura);
-        fprintf(out, "%12d ", caixas[i].profundidade);
-        fprintf(out, "%12d ", caixas[i].valor);
-        fprintf(out, "%12d ", caixas[i].numero);
-        fprintf(out, "%12d\n", caixas[i].rotacao);
-    }
-}
-
-
-void escreveCaixas(char *arquivo, Caixa *caixas, int **soma)
-{
-
-    int valor = soma[num_caixas-1][altura_maxima];
-    int i = num_caixas - 1;
-    int j = altura_maxima;
-    int total_caixas = 0;
-    int tamanho_vetor = num_caixas;
-    Caixa *resultado = malloc(sizeof(Caixa)*tamanho_vetor);
-
-
-    while(valor>0 && j>0 && i>0)
-
-    {
-        if(total_caixas > tamanho_vetor - 1)
-        {
-            tamanho_vetor = 2 * tamanho_vetor;
-            resultado = realloc(resultado, sizeof(Caixa) * tamanho_vetor);
-        }
-        if(soma[i][j-1] > soma[i-1][j])
-        {
-            resultado[total_caixas] = caixas[i];
-            total_caixas++;
-            j = j - caixas[i].altura;
-        }
-        else
-        {
-            while(soma[i][j-1] <= soma[i-1][j] && i>1)
-            {
-                i--;
-            }
-
-            (soma[i][j-1] <= soma[i-1][j])?i--:i;
-        }
-        valor = soma[i][j];
-    }
-
-    printf("%d\n", soma[num_caixas-1][altura_maxima]);
-    printf("%d\n", total_caixas);
-    for(int i=total_caixas-1; i>=0; i--)
-    {
-        printf("%d ", resultado[i].largura);
-        printf("%d ", resultado[i].altura);
-        printf("%d ", resultado[i].profundidade);
-        printf("%d ", resultado[i].valor);
-        printf("%d ", resultado[i].numero);
-        printf("%d\n", resultado[i].rotacao);
-    }
-
-    free(resultado);
-    return;
-}
-
-void printCaixas(Caixa *caixas)
-{
-    printf("\n\n%s\t%10s\t%10s\t%10s\t%10s\t%10s\t%10s\t\n\n", "Indice", "Largura", "Altura",  "Profundidade", "Valor", "Rotacao", "Numero");
-    for(int i=0; i<num_caixas; i++)
-    {
-        printf("i==%d\t%10d\t%10d\t%10d\t%10d\t%10d\t%10d\t", i, caixas[i].largura, caixas[i].altura, caixas[i].profundidade, caixas[i].valor, caixas[i].rotacao, caixas[i].numero );
-        printf("\n");
-    }
-    printf("\n");
 }
 
 int main(int argc, char *argv[] )
@@ -385,29 +301,21 @@ int main(int argc, char *argv[] )
         fprintf(stderr,"Argumentos necessarios: \"programa\" \"entrada\" \"saida\"");
         exit(EXIT_FAILURE);
     }
+
     Caixa *caixas = leCaixas(argv[1]);
 
     geraRotacao(num_caixas, caixas);
     num_caixas = 2 * num_caixas;
 
-    char* nome = remover(argv[1]);
-    nome = concatenar(nome, ".txt");
-
     qsort(caixas, num_caixas, sizeof(caixas[0]), compare);
-
-     printCaixas(caixas);
 
     int **soma = preencheMatriz(num_caixas, altura_maxima + 1, 0);
 
     printf("Lucro: %d\n",empilhaCaixas(altura_maxima,caixas, soma));
 
-    nome = remover(argv[1]);
-    nome = concatenar(nome, ".csv");
-    //gravaTabela(soma,nome);
-
     escreveCaixas(argv[2], caixas, soma);
 
-    free(soma);
+    freeMatriz(soma);
     free(caixas);
 
     return 0;
